@@ -7,6 +7,7 @@ export interface AlertaEstoque {
 }
 
 export interface GatewayNotificacao {
+  readonly canal: string;
   enviarAlertaEstoqueMinimo(alerta: AlertaEstoque): Promise<void>;
 }
 
@@ -16,12 +17,16 @@ export function mensagemDoAlerta(a: AlertaEstoque): string {
 }
 
 export class NotificacaoConsole implements GatewayNotificacao {
+  readonly canal = 'console do servidor';
+
   async enviarAlertaEstoqueMinimo(alerta: AlertaEstoque): Promise<void> {
     console.log(`[ALERTA] ${mensagemDoAlerta(alerta)}`);
   }
 }
 
 export class NotificacaoWebhook implements GatewayNotificacao {
+  readonly canal = 'webhook';
+
   constructor(private readonly url: string, private readonly timeoutMs = 3000) {}
 
   async enviarAlertaEstoqueMinimo(alerta: AlertaEstoque): Promise<void> {

@@ -71,6 +71,8 @@ test('saída abaixo do mínimo envia alerta', async () => {
   const r = await s.movimentacao.registrarSaida(ana, { produtoId: 'P001', depositoId: 'D1', quantidade: 100, motivo: 'OP 1' });
   assert.equal(s.notificacao.enviados.length, 1);
   assert.deepEqual(r.avisos, []);
+  assert.equal(r.alertas.length, 1);
+  assert.match(r.alertas[0]!, /Alerta de estoque mínimo enviado/);
 });
 
 test('falha no serviço de alertas não impede a saída (degradação graciosa)', async () => {
@@ -81,6 +83,7 @@ test('falha no serviço de alertas não impede a saída (degradação graciosa)'
   const r = await s.movimentacao.registrarSaida(ana, { produtoId: 'P001', depositoId: 'D1', quantidade: 100, motivo: 'OP 1' });
   assert.equal(r.saldos[0]!.quantidade, 50);
   assert.equal(r.avisos[0]!.codigo, 'alerta_nao_enviado');
+  assert.deepEqual(r.alertas, []);
   assert.equal((s.repositorio as any).alertasPendentes.length, 1);
 });
 

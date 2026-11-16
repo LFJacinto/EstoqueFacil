@@ -1,0 +1,42 @@
+### Exemplos para a extensão REST Client do VS Code (ou copie para o Postman/Insomnia)
+@base = http://localhost:3000
+
+### Produtos
+GET {{base}}/produtos
+x-api-key: chave-ana
+
+### Entrada (compra)
+POST {{base}}/movimentacoes/entrada
+content-type: application/json
+x-api-key: chave-ana
+
+{ "produtoId": "P001", "depositoId": "D1", "quantidade": 150, "custoUnitario": 0.45, "motivo": "NF 1234" }
+
+### Saída (consumo em ordem de produção)
+POST {{base}}/movimentacoes/saida
+content-type: application/json
+x-api-key: chave-ana
+
+{ "produtoId": "P001", "depositoId": "D1", "quantidade": 60, "motivo": "OP 5678" }
+
+### Transferência entre depósitos
+POST {{base}}/movimentacoes/transferencia
+content-type: application/json
+x-api-key: chave-ana
+
+{ "produtoId": "P001", "origemId": "D1", "destinoId": "D2", "quantidade": 20, "motivo": "Reposição da filial" }
+
+### Saldos (Bruno só enxerga o depósito D1)
+GET {{base}}/saldos
+x-api-key: chave-bruno
+
+### Extrato (kardex) do produto
+GET {{base}}/produtos/P001/extrato?depositoId=D1
+x-api-key: chave-ana
+
+### Erro esperado: Bruno tem perfil de consulta (403)
+POST {{base}}/movimentacoes/saida
+content-type: application/json
+x-api-key: chave-bruno
+
+{ "produtoId": "P001", "depositoId": "D1", "quantidade": 1, "motivo": "teste" }

@@ -36,6 +36,7 @@ export interface Resultado {
   movimentacoes: Movimentacao[];
   saldos: Saldo[];
   avisos: Aviso[];
+  alertas: string[];
 }
 
 export class ServicoMovimentacao {
@@ -55,7 +56,7 @@ export class ServicoMovimentacao {
 
     return this.repositorio.emTransacao(async (uow) => {
       const { mov, saldo } = await this.entrada(uow, usuario, p.produtoId, p.depositoId, p.quantidade, p.custoUnitario, p.motivo, null);
-      return { movimentacoes: [mov], saldos: [saldo], avisos: [] };
+      return { movimentacoes: [mov], saldos: [saldo], avisos: [], alertas: [] };
     });
   }
 
@@ -68,9 +69,11 @@ export class ServicoMovimentacao {
 
     const resultado = await this.repositorio.emTransacao(async (uow) => {
       const { mov, saldo } = await this.saida(uow, usuario, p.produtoId, p.depositoId, p.quantidade, p.motivo, null);
-      return { movimentacoes: [mov], saldos: [saldo], avisos: [] as Aviso[] };
+      return { movimentacoes: [mov], saldos: [saldo], avisos: [] as Aviso[], alertas: [] as string[] };
     });
-    resultado.avisos.push(...(await this.alertarSeAbaixoDoMinimo(produto, resultado.saldos[0]!)));
+    const alerta = await this.alertarSeAbaixoDoMinimo(produto, resultado.saldos[0]!);
+    resultado.avisos.push(...alerta.avisos);
+    resultado.alertas.push(...alerta.alertas);
     return resultado;
   }
 
@@ -89,9 +92,11 @@ export class ServicoMovimentacao {
       for (const dep of [p.origemId, p.destinoId].sort()) await uow.bloquearSaldo(p.produtoId, dep);
       const s = await this.saida(uow, usuario, p.produtoId, p.origemId, p.quantidade, p.motivo, transferenciaId);
       const e = await this.entrada(uow, usuario, p.produtoId, p.destinoId, p.quantidade, s.mov.custoUnitario, p.motivo, transferenciaId);
-      return { movimentacoes: [s.mov, e.mov], saldos: [s.saldo, e.saldo], avisos: [] as Aviso[] };
+      return { movimentacoes: [s.mov, e.mov], saldos: [s.saldo, e.saldo], avisos: [] as Aviso[], alertas: [] as string[] };
     });
-    resultado.avisos.push(...(await this.alertarSeAbaixoDoMinimo(produto, resultado.saldos[0]!)));
+    const alerta = await this.alertarSeAbaixoDoMinimo(produto, resultado.saldos[0]!);
+    resultado.avisos.push(...alerta.avisos);
+    resultado.alertas.push(...alerta.alertas);
     return resultado;
   }
 
@@ -135,15 +140,15 @@ export class ServicoMovimentacao {
     return produto;
   }
 
-  private async alertarSeAbaixoDoMinimo(produto: Produto, saldo: Saldo): Promise<Aviso[]> {
-    if (saldo.quantidade >= produto.estoqueMinimo) return [];
+  private async alertarSeAbaixoDoMinimo(produto: Produto, saldo: Saldo): Promise<{ avisos: Aviso[]; alertas: string[] }> {
+    if (saldo.quantidade >= produto.estoqueMinimo) return { avisos: [], alertas: [] };
     const alerta = {
       produtoId: produto.id, produtoNome: produto.nome, depositoId: saldo.depositoId,
       quantidade: saldo.quantidade, estoqueMinimo: produto.estoqueMinimo,
     };
     try {
       await this.notificacao.enviarAlertaEstoqueMinimo(alerta);
-      return [];
+      return { avisos: [], alertas: [`Alerta de estoque mínimo enviado (${this.notificacao.canal}): ${mensagemDoAlerta(alerta)}`] };
     } catch (erro) {
       const motivo = erro instanceof Error ? erro.message : String(erro);
       try {
@@ -151,7 +156,7 @@ export class ServicoMovimentacao {
           produtoId: produto.id, depositoId: saldo.depositoId, mensagem: mensagemDoAlerta(alerta), erro: motivo,
         });
       } catch {}
-      return [{ codigo: 'alerta_nao_enviado', mensagem: `Estoque abaixo do mínimo, mas o alerta não foi enviado (${motivo}). Ficou na fila de pendentes.` }];
+      return { avisos: [{ codigo: 'alerta_nao_enviado', mensagem: `Estoque abaixo do mínimo, mas o alerta não foi enviado (${motivo}). Ficou na fila de pendentes.` }], alertas: [] };
     }
   }
 }

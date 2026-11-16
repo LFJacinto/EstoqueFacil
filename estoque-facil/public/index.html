@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EstoqueFácil</title>
+<style>
+  :root { --verde:#1f7a4d; --verde-claro:#e5f4e4; --vermelho:#b42318; --vermelho-claro:#fbebeb; --amarelo:#f9eeda; --borda:#d9dde3; --texto:#1d2329; --suave:#5b6670; }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--texto); background:#f6f7f9; }
+  header { background:#fff; border-bottom:1px solid var(--borda); padding:14px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:20px; margin:0; }
+  header h1 span { color:var(--verde); }
+  header .usuario { margin-left:auto; display:flex; align-items:center; gap:8px; font-size:14px; }
+  main { max-width:1100px; margin:0 auto; padding:20px 24px 40px; display:grid; grid-template-columns: 1.4fr 1fr; gap:20px; }
+  section { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:16px 18px; }
+  h2 { font-size:16px; margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--borda); }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.03em; color:var(--suave); }
+  td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  tr.baixo td { background:var(--amarelo); }
+  .tag { font-size:11px; padding:2px 6px; border-radius:999px; background:var(--vermelho-claro); color:var(--vermelho); white-space:nowrap; }
+  .abas { display:flex; gap:4px; margin-bottom:12px; }
+  .abas button { flex:1; padding:8px; border:1px solid var(--borda); background:#fff; border-radius:6px; cursor:pointer; font-size:14px; }
+  .abas button.ativa { background:var(--verde); color:#fff; border-color:var(--verde); }
+  form { display:grid; gap:10px; }
+  label { display:grid; gap:4px; font-size:13px; color:var(--suave); }
+  input, select { padding:8px; border:1px solid var(--borda); border-radius:6px; font-size:14px; color:var(--texto); background:#fff; }
+  .linha { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button.principal { padding:10px; background:var(--verde); color:#fff; border:0; border-radius:6px; font-size:14px; cursor:pointer; }
+  .mensagem { margin-top:12px; padding:10px 12px; border-radius:6px; font-size:14px; display:none; white-space:pre-line; }
+  .mensagem.ok { display:block; background:var(--verde-claro); }
+  .mensagem.erro { display:block; background:var(--vermelho-claro); color:var(--vermelho); }
+  .mensagem.aviso { display:block; background:var(--amarelo); }
+  .filtro { display:flex; gap:8px; align-items:center; margin-bottom:10px; font-size:14px; }
+  .extrato { grid-column: 1 / -1; }
+  .vazio { color:var(--suave); font-size:14px; padding:12px 0; }
+  footer { text-align:center; color:var(--suave); font-size:12px; padding-bottom:24px; }
+  @media (max-width: 860px) { main { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Estoque<span>Fácil</span></h1>
+  <div class="usuario">
+    <label for="usuario" style="display:inline">Entrar como</label>
+    <select id="usuario">
+      <option value="chave-ana">Ana — operador (D1, D2)</option>
+      <option value="chave-bruno">Bruno — só consulta (D1)</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Saldos</h2>
+    <div class="filtro">
+      Depósito
+      <select id="filtroDeposito">
+        <option value="">Todos que posso ver</option>
+        <option value="D1">D1 — Matriz</option>
+        <option value="D2">D2 — Filial</option>
+      </select>
+    </div>
+    <div id="saldos"></div>
+    <div id="msgSaldos" class="mensagem"></div>
+  </section>
+
+  <section>
+    <h2>Registrar movimentação</h2>
+    <div class="abas">
+      <button type="button" data-aba="entrada" class="ativa">Entrada</button>
+      <button type="button" data-aba="saida">Saída</button>
+      <button type="button" data-aba="transferencia">Transferência</button>
+    </div>
+    <form id="form">
+      <label>Produto <select name="produtoId" id="produtos"></select></label>
+      <div class="linha">
+        <label id="campoDeposito">Depósito
+          <select name="depositoId"><option value="D1">D1 — Matriz</option><option value="D2">D2 — Filial</option></select>
+        </label>
+        <label id="campoDestino" hidden>Destino
+          <select name="destinoId"><option value="D2">D2 — Filial</option><option value="D1">D1 — Matriz</option></select>
+        </label>
+        <label>Quantidade <input name="quantidade" type="number" step="0.001" min="0" required value="10"></label>
+      </div>
+      <label id="campoCusto">Custo unitário (R$) <input name="custoUnitario" type="number" step="0.0001" min="0" value="1.50"></label>
+      <label>Motivo <input name="motivo" required placeholder="Ex.: NF 1234, OP 5678, reposição" value="NF 1234"></label>
+      <button class="principal" type="submit" id="botao">Registrar entrada</button>
+    </form>
+    <div id="msgForm" class="mensagem"></div>
+  </section>
+
+  <section class="extrato">
+    <h2>Extrato do produto (kardex)</h2>
+    <div class="filtro">
+      Produto <select id="extratoProduto"></select>
+    </div>
+    <div id="extrato"></div>
+  </section>
+</main>
+<footer>EstoqueFácil — projeto acadêmico de Arquitetura de Software. Esta página só usa a API REST; todas as regras ficam no servidor.</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let aba = 'entrada';
+const fmtQtd = (n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+const fmtRS = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 4 });
+const escapar = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function api(metodo, caminho, corpo) {
+  const r = await fetch(caminho, {
+    method: metodo,
+    headers: { 'content-type': 'application/json', 'x-api-key': $('usuario').value },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const dados = await r.json();
+  if (!r.ok) throw Object.assign(new Error(dados.mensagem || 'Erro'), { status: r.status });
+  return dados;
+}
+
+function mostrar(el, tipo, texto) { el.className = 'mensagem ' + tipo; el.textContent = texto; }
+function limpar(el) { el.className = 'mensagem'; el.textContent = ''; }
+
+async function carregarProdutos() {
+  const produtos = await api('GET', '/produtos');
+  const opcoes = produtos.map((p) => `<option value="${escapar(p.id)}">${escapar(p.id)} — ${escapar(p.nome)} (mín. ${fmtQtd(p.estoqueMinimo)} ${escapar(p.unidade)})</option>`).join('');
+  $('produtos').innerHTML = opcoes;
+  $('extratoProduto').innerHTML = opcoes;
+}
+
+async function carregarSaldos() {
+  limpar($('msgSaldos'));
+  const dep = $('filtroDeposito').value;
+  try {
+    const saldos = await api('GET', '/saldos' + (dep ? '?depositoId=' + dep : ''));
+    if (saldos.length === 0) { $('saldos').innerHTML = '<div class="vazio">Nenhum saldo ainda. Registre uma entrada ao lado.</div>'; return; }
+    $('saldos').innerHTML = `<table><thead><tr><th>Produto</th><th>Depósito</th><th class="num">Saldo</th><th class="num">Custo médio</th><th></th></tr></thead><tbody>` +
+      saldos.map((s) => `<tr class="${s.abaixoDoMinimo ? 'baixo' : ''}"><td>${escapar(s.produtoId)} — ${escapar(s.produtoNome)}</td><td>${escapar(s.depositoId)}</td>` +
+        `<td class="num">${fmtQtd(s.quantidade)} ${escapar(s.unidade)}</td><td class="num">${fmtRS(s.custoMedio)}</td>` +
+        `<td>${s.abaixoDoMinimo ? '<span class="tag">abaixo do mínimo</span>' : ''}</td></tr>`).join('') + '</tbody></table>';
+  } catch (e) {
+    $('saldos').innerHTML = '';
+    mostrar($('msgSaldos'), 'erro', `${e.status} — ${e.message}`);
+  }
+}
+
+async function carregarExtrato() {
+  try {
+    const movs = await api('GET', `/produtos/${encodeURIComponent($('extratoProduto').value)}/extrato`);
+    if (movs.length === 0) { $('extrato').innerHTML = '<div class="vazio">Sem movimentações nos depósitos que você pode ver.</div>'; return; }
+    $('extrato').innerHTML = `<table><thead><tr><th>#</th><th>Data</th><th>Tipo</th><th>Depósito</th><th class="num">Qtd.</th><th class="num">Custo unit.</th><th class="num">Saldo após</th><th>Usuário</th><th>Motivo</th></tr></thead><tbody>` +
+      movs.slice().reverse().map((m) => `<tr><td>${m.id}</td><td>${new Date(m.criadaEm).toLocaleString('pt-BR')}</td><td>${m.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}${m.transferenciaId ? ' (transf.)' : ''}</td>` +
+        `<td>${escapar(m.depositoId)}</td><td class="num">${fmtQtd(m.quantidade)}</td><td class="num">${fmtRS(m.custoUnitario)}</td><td class="num">${fmtQtd(m.saldoApos)}</td>` +
+        `<td>${escapar(m.usuarioId)}</td><td>${escapar(m.motivo)}</td></tr>`).join('') + '</tbody></table>';
+  } catch (e) {
+    $('extrato').innerHTML = `<div class="vazio">${e.status} — ${escapar(e.message)}</div>`;
+  }
+}
+
+function trocarAba(nova) {
+  aba = nova;
+  document.querySelectorAll('.abas button').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === nova));
+  $('campoCusto').hidden = nova !== 'entrada';
+  $('campoDestino').hidden = nova !== 'transferencia';
+  $('campoDeposito').firstChild.textContent = nova === 'transferencia' ? 'Origem ' : 'Depósito ';
+  $('botao').textContent = { entrada: 'Registrar entrada', saida: 'Registrar saída', transferencia: 'Transferir' }[nova];
+  $('form').motivo.value = { entrada: 'NF 1234', saida: 'OP 5678', transferencia: 'Reposição da filial' }[nova];
+  limpar($('msgForm'));
+}
+
+$('form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = ev.target;
+  const base = { produtoId: f.produtoId.value, quantidade: Number(f.quantidade.value), motivo: f.motivo.value };
+  const [rota, corpo] = {
+    entrada: ['/movimentacoes/entrada', { ...base, depositoId: f.depositoId.value, custoUnitario: Number(f.custoUnitario.value) }],
+    saida: ['/movimentacoes/saida', { ...base, depositoId: f.depositoId.value }],
+    transferencia: ['/movimentacoes/transferencia', { ...base, origemId: f.depositoId.value, destinoId: f.destinoId.value }],
+  }[aba];
+  try {
+    const r = await api('POST', rota, corpo);
+    const resumo = r.saldos.map((s) => `${s.depositoId}: ${fmtQtd(s.quantidade)}`).join(' · ');
+    if (r.avisos.length) mostrar($('msgForm'), 'aviso', `Registrado (${resumo}). Aviso: ${r.avisos.map((a) => a.mensagem).join(' ')}`);
+    else mostrar($('msgForm'), 'ok', `Registrado com sucesso. Novo saldo — ${resumo}.` + r.alertas.map((a) => '\n' + a).join(''));
+    $('extratoProduto').value = f.produtoId.value;
+  } catch (e) {
+    mostrar($('msgForm'), 'erro', `${e.status} — ${e.message}`);
+  }
+  carregarSaldos(); carregarExtrato();
+});
+
+document.querySelectorAll('.abas button').forEach((b) => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
+$('filtroDeposito').addEventListener('change', carregarSaldos);
+$('extratoProduto').addEventListener('change', carregarExtrato);
+$('usuario').addEventListener('change', () => { limpar($('msgForm')); carregarSaldos(); carregarExtrato(); });
+
+carregarProdutos().then(() => { carregarSaldos(); carregarExtrato(); });
+</script>
+</body>
+</html>

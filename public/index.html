@@ -30,7 +30,7 @@
   input, select { padding:8px; border:1px solid var(--borda); border-radius:6px; font-size:14px; color:var(--texto); background:#fff; }
   .linha { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   button.principal { padding:10px; background:var(--verde); color:#fff; border:0; border-radius:6px; font-size:14px; cursor:pointer; }
-  .mensagem { margin-top:12px; padding:10px 12px; border-radius:6px; font-size:14px; display:none; }
+  .mensagem { margin-top:12px; padding:10px 12px; border-radius:6px; font-size:14px; display:none; white-space:pre-line; }
   .mensagem.ok { display:block; background:var(--verde-claro); }
   .mensagem.erro { display:block; background:var(--vermelho-claro); color:var(--vermelho); }
   .mensagem.aviso { display:block; background:var(--amarelo); }
@@ -38,6 +38,16 @@
   .extrato { grid-column: 1 / -1; }
   .vazio { color:var(--suave); font-size:14px; padding:12px 0; }
   footer { text-align:center; color:var(--suave); font-size:12px; padding-bottom:24px; }
+  .toasts { position:fixed; bottom:16px; right:16px; display:grid; gap:10px; z-index:10; width:min(380px, calc(100vw - 32px)); }
+  .toast { display:flex; gap:12px; align-items:flex-start; background:#fff; border:1px solid #f0b37e; border-left:6px solid #e8730c; border-radius:10px; padding:12px 14px; box-shadow:0 8px 24px rgba(0,0,0,.15); animation:entrar .25s ease-out; }
+  .toast.saindo { animation:sair .3s ease-in forwards; }
+  .toast .icone { font-size:22px; line-height:1; }
+  .toast .corpo { flex:1; font-size:14px; }
+  .toast .corpo strong { display:block; margin-bottom:2px; color:#b4500a; }
+  .toast .corpo small { display:block; margin-top:4px; color:var(--suave); font-size:12px; }
+  .toast button { border:0; background:none; font-size:18px; line-height:1; cursor:pointer; color:var(--suave); padding:0; }
+  @keyframes entrar { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:none; } }
+  @keyframes sair { to { opacity:0; transform:translateX(30px); } }
   @media (max-width: 860px) { main { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -52,6 +62,8 @@
     </select>
   </div>
 </header>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
 <main>
   <section>
@@ -160,6 +172,19 @@ async function carregarExtrato() {
   }
 }
 
+function mostrarToast(texto) {
+  const partes = texto.match(/^Alerta de estoque mínimo enviado \((.+?)\): (.*)$/);
+  const canal = partes ? partes[1] : '';
+  const detalhe = partes ? partes[2].replace(/^Estoque abaixo do mínimo: /, '') : texto;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<div class="icone">🔔</div><div class="corpo"><strong>Estoque abaixo do mínimo</strong>${escapar(detalhe)}${canal ? `<small>Alerta enviado pelo gateway · canal: ${escapar(canal)}</small>` : ''}</div><button type="button" aria-label="Fechar">×</button>`;
+  const fechar = () => { t.classList.add('saindo'); setTimeout(() => t.remove(), 300); };
+  t.querySelector('button').addEventListener('click', fechar);
+  $('toasts').appendChild(t);
+  setTimeout(fechar, 8000);
+}
+
 function trocarAba(nova) {
   aba = nova;
   document.querySelectorAll('.abas button').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === nova));
@@ -185,6 +210,7 @@ $('form').addEventListener('submit', async (ev) => {
     const resumo = r.saldos.map((s) => `${s.depositoId}: ${fmtQtd(s.quantidade)}`).join(' · ');
     if (r.avisos.length) mostrar($('msgForm'), 'aviso', `Registrado (${resumo}). Aviso: ${r.avisos.map((a) => a.mensagem).join(' ')}`);
     else mostrar($('msgForm'), 'ok', `Registrado com sucesso. Novo saldo — ${resumo}.`);
+    r.alertas.forEach(mostrarToast);
     $('extratoProduto').value = f.produtoId.value;
   } catch (e) {
     mostrar($('msgForm'), 'erro', `${e.status} — ${e.message}`);

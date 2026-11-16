@@ -8,6 +8,7 @@ import type { RepositorioEstoque } from '../src/persistencia/repositorio-estoque
 import { RepositorioMemoria, dadosDeExemplo } from '../src/persistencia/repositorio-memoria.ts';
 
 export class NotificacaoFalsa implements GatewayNotificacao {
+  readonly canal = 'teste';
   enviados: AlertaEstoque[] = [];
   falhar = false;
   async enviarAlertaEstoqueMinimo(a: AlertaEstoque) {
