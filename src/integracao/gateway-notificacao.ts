@@ -1,6 +1,3 @@
-// Padrão Gateway: isola o serviço externo que envia alertas de estoque mínimo.
-// Trocar e-mail por WhatsApp, Slack ou outro canal altera só esta camada.
-
 export interface AlertaEstoque {
   produtoId: string;
   produtoNome: string;
@@ -18,14 +15,12 @@ export function mensagemDoAlerta(a: AlertaEstoque): string {
     `tem ${a.quantidade}; mínimo ${a.estoqueMinimo}.`;
 }
 
-/** Apenas escreve o alerta no console (útil em desenvolvimento). */
 export class NotificacaoConsole implements GatewayNotificacao {
   async enviarAlertaEstoqueMinimo(alerta: AlertaEstoque): Promise<void> {
     console.log(`[ALERTA] ${mensagemDoAlerta(alerta)}`);
   }
 }
 
-/** Envia o alerta por HTTP (webhook do Slack, Teams, serviço de e-mail etc.). */
 export class NotificacaoWebhook implements GatewayNotificacao {
   constructor(private readonly url: string, private readonly timeoutMs = 3000) {}
 

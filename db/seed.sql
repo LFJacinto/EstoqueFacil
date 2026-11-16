@@ -1,4 +1,3 @@
--- Dados de exemplo para testar a API
 INSERT INTO produtos (id, nome, unidade, estoque_minimo) VALUES
   ('P001', 'Produto 1', 'UN', 100),
   ('P002', 'Produto 2', 'UN', 50),

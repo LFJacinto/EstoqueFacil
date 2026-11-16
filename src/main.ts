@@ -1,8 +1,4 @@
-// Ponto de composição (composition root): o ÚNICO lugar que conhece as
-// implementações concretas. Aqui as dependências são criadas e injetadas.
-// Trocar banco, método de custeio ou canal de alerta muda só este arquivo
-// (ou uma variável de ambiente).
-
+import type { Server } from 'node:http';
 import { criarApi } from './interface/api.ts';
 import { ControleAcesso } from './seguranca/controle-acesso.ts';
 import { ServicoMovimentacao } from './aplicacao/servico-movimentacao.ts';
@@ -31,12 +27,26 @@ const app = criarApi({
   consulta: new ServicoConsulta(repositorio),
 });
 
-const servidor = app.listen(porta, () => {
-  console.log(`EstoqueFácil rodando em http://localhost:${porta}  (abra no navegador; não feche este terminal)`);
-  console.log(`  banco: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'memória (dados de exemplo; defina DATABASE_URL para usar o Postgres)'}`);
-  console.log(`  custeio: ${estrategiaCusto.nome} | alertas: ${process.env.WEBHOOK_URL ? 'webhook' : 'console'}`);
-});
+function iniciar(porta: number, tentativas = 10): Server {
+  const servidor = app.listen(porta, () => {
+    console.log(`EstoqueFácil rodando em http://localhost:${porta}  (abra no navegador; não feche este terminal)`);
+    console.log(`  banco: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'memória (dados de exemplo; defina DATABASE_URL para usar o Postgres)'}`);
+    console.log(`  custeio: ${estrategiaCusto.nome} | alertas: ${process.env.WEBHOOK_URL ? 'webhook' : 'console'}`);
+  });
+  servidor.on('error', (erro: NodeJS.ErrnoException) => {
+    if (erro.code === 'EADDRINUSE' && tentativas > 1) {
+      console.log(`Porta ${porta} ocupada (outro servidor já está rodando nela). Tentando ${porta + 1}...`);
+      atual = iniciar(porta + 1, tentativas - 1);
+      return;
+    }
+    console.error(`Não foi possível iniciar o servidor: ${erro.message}`);
+    process.exit(1);
+  });
+  return servidor;
+}
 
-const encerrar = () => servidor.close(() => { repositorio.fechar().finally(() => process.exit(0)); });
+let atual = iniciar(porta);
+
+const encerrar = () => atual.close(() => { repositorio.fechar().finally(() => process.exit(0)); });
 process.on('SIGINT', encerrar);
 process.on('SIGTERM', encerrar);

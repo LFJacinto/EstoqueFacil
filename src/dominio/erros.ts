@@ -1,5 +1,3 @@
-// Erros de domínio. A camada de interface traduz cada um para um status HTTP.
-
 export class ErroDominio extends Error {
   constructor(
     public readonly codigo: string,

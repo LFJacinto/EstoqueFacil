@@ -1,7 +1,3 @@
-// Implementação do repositório em memória, usada nos testes e na demonstração
-// sem banco. Cumpre o mesmo contrato do RepositorioPostgres, inclusive transações:
-// uma transação por vez (como o bloqueio do banco) e desfaz tudo em caso de erro.
-
 import type {
   Deposito, Movimentacao, NovaMovimentacao, Produto, Saldo, SaldoDetalhado, Usuario,
 } from '../dominio/tipos.ts';
@@ -86,7 +82,6 @@ export class RepositorioMemoria implements RepositorioEstoque {
   async fechar(): Promise<void> {}
 }
 
-/** Mesmos dados de db/seed.sql, para rodar sem banco. */
 export function dadosDeExemplo(): DadosIniciais {
   return {
     produtos: [

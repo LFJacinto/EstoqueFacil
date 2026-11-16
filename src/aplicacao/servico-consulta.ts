@@ -1,6 +1,3 @@
-// Camada de aplicação: consultas de produtos, saldos e extrato (kardex).
-// Toda consulta é limitada aos depósitos que o usuário pode ver.
-
 import type { Movimentacao, Produto, SaldoDetalhado, Usuario } from '../dominio/tipos.ts';
 import { naoEncontrado } from '../dominio/erros.ts';
 import type { RepositorioEstoque } from '../persistencia/repositorio-estoque.ts';

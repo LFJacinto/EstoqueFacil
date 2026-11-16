@@ -1,5 +1,3 @@
-// Testes das regras de negócio (camada de aplicação + domínio).
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { montar, usuario } from './apoio.ts';
@@ -14,7 +12,7 @@ test('entrada aumenta o saldo e calcula o custo médio ponderado', async () => {
   await s.movimentacao.registrarEntrada(ana, { produtoId: 'P001', depositoId: 'D1', quantidade: 100, custoUnitario: 1, motivo: 'NF 101' });
   const r = await s.movimentacao.registrarEntrada(ana, { produtoId: 'P001', depositoId: 'D1', quantidade: 300, custoUnitario: 2, motivo: 'NF 102' });
   assert.equal(r.saldos[0]!.quantidade, 400);
-  assert.equal(r.saldos[0]!.custoMedio, 1.75); // (100×1 + 300×2) / 400
+  assert.equal(r.saldos[0]!.custoMedio, 1.75);
 });
 
 test('estratégia de custo é substituível (Strategy)', () => {

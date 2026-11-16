@@ -1,5 +1,3 @@
-// Monta o sistema completo com o repositório em memória para os testes.
-
 import { criarApi } from '../src/interface/api.ts';
 import { ControleAcesso } from '../src/seguranca/controle-acesso.ts';
 import { ServicoMovimentacao } from '../src/aplicacao/servico-movimentacao.ts';

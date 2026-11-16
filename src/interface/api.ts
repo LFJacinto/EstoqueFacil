@@ -1,6 +1,3 @@
-// Camada de interface: API REST. Só traduz HTTP <-> casos de uso.
-// Nenhuma regra de negócio mora aqui.
-
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { fileURLToPath } from 'node:url';
 import type { Usuario } from '../dominio/tipos.ts';
@@ -30,7 +27,6 @@ const numero = (corpo: any, campo: string): number => {
 const usuarioDe = (req: ReqAutenticada) => req.usuario!;
 const opcional = (v: unknown) => (typeof v === 'string' && v !== '' ? v : undefined);
 
-/** Envolve um handler assíncrono para que erros cheguem ao tratador central. */
 const rota = (fn: (req: ReqAutenticada, res: Response) => Promise<unknown>) =>
   (req: Request, res: Response, next: NextFunction) => { fn(req, res).catch(next); };
 
@@ -38,7 +34,6 @@ export function criarApi(deps: DependenciasApi) {
   const app = express();
   app.use(express.json());
 
-  // Desempenho: mede o tempo de cada requisição (atributo de qualidade, seção GQM).
   app.use((_req, res, next) => {
     const inicio = process.hrtime.bigint();
     const writeHead = res.writeHead;
@@ -52,11 +47,8 @@ export function criarApi(deps: DependenciasApi) {
 
   app.get('/saude', (_req, res) => { res.json({ status: 'ok' }); });
 
-  // Página web de demonstração (public/index.html). Ela é só mais um cliente
-  // da API: envia a chave em cada chamada e não contém regra de negócio.
   app.use(express.static(fileURLToPath(new URL('../../public', import.meta.url))));
 
-  // Segurança: toda rota abaixo exige uma chave de acesso válida.
   app.use((req: ReqAutenticada, _res: Response, next: NextFunction) => {
     deps.controleAcesso.autenticar(req.header('x-api-key'))
       .then((usuario) => { req.usuario = usuario; next(); })
@@ -99,8 +91,6 @@ export function criarApi(deps: DependenciasApi) {
     }));
   }));
 
-  // Tratador central de erros: erro de domínio vira status HTTP; o resto vira 500
-  // sem expor detalhes internos ao cliente.
   app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (erro instanceof ErroDominio) {
       res.status(erro.status).json({ erro: erro.codigo, mensagem: erro.message });

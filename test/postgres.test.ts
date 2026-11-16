@@ -1,7 +1,3 @@
-// Testes de integração com PostgreSQL de verdade.
-// Rodam só quando DATABASE_URL_TESTE estiver definida (ex.: banco do docker-compose).
-// ATENÇÃO: apagam os dados do banco indicado.
-
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';

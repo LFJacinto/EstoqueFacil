@@ -1,5 +1,3 @@
-// Testes de ponta a ponta da API HTTP (com o repositório em memória).
-
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';

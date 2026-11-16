@@ -1,7 +1,3 @@
-// Camada de aplicação: orquestra cada caso de uso de movimentação.
-// Regras garantidas aqui: acesso ao depósito, saldo nunca negativo, custo pela
-// estratégia configurada e registro imutável de cada movimento.
-
 import { randomUUID } from 'node:crypto';
 import {
   arredondarQtd, type Aviso, type Movimentacao, type Produto, type Saldo, type Usuario,
@@ -39,7 +35,6 @@ export interface PedidoTransferencia {
 export interface Resultado {
   movimentacoes: Movimentacao[];
   saldos: Saldo[];
-  /** Falhas secundárias que não impediram a operação (ex.: alerta não enviado). */
   avisos: Aviso[];
 }
 
@@ -79,7 +74,6 @@ export class ServicoMovimentacao {
     return resultado;
   }
 
-  /** Saída da origem + entrada no destino, na MESMA transação: ou as duas, ou nenhuma. */
   async transferir(usuario: Usuario, p: PedidoTransferencia): Promise<Resultado> {
     exigirOperador(usuario);
     exigirDeposito(usuario, p.origemId);
@@ -92,8 +86,6 @@ export class ServicoMovimentacao {
 
     const transferenciaId = randomUUID();
     const resultado = await this.repositorio.emTransacao(async (uow) => {
-      // Bloqueia sempre na mesma ordem (por id do depósito) para evitar deadlock
-      // entre transferências opostas simultâneas.
       for (const dep of [p.origemId, p.destinoId].sort()) await uow.bloquearSaldo(p.produtoId, dep);
       const s = await this.saida(uow, usuario, p.produtoId, p.origemId, p.quantidade, p.motivo, transferenciaId);
       const e = await this.entrada(uow, usuario, p.produtoId, p.destinoId, p.quantidade, s.mov.custoUnitario, p.motivo, transferenciaId);
@@ -102,8 +94,6 @@ export class ServicoMovimentacao {
     resultado.avisos.push(...(await this.alertarSeAbaixoDoMinimo(produto, resultado.saldos[0]!)));
     return resultado;
   }
-
-  // ---- regras internas -------------------------------------------------------
 
   private async entrada(
     uow: UnidadeDeTrabalho, usuario: Usuario, produtoId: string, depositoId: string,
@@ -145,11 +135,6 @@ export class ServicoMovimentacao {
     return produto;
   }
 
-  /**
-   * Degradação graciosa: o alerta é enviado DEPOIS da transação. Se o serviço
-   * externo falhar, a movimentação continua válida; o alerta vai para a fila de
-   * pendentes e a resposta traz um aviso.
-   */
   private async alertarSeAbaixoDoMinimo(produto: Produto, saldo: Saldo): Promise<Aviso[]> {
     if (saldo.quantidade >= produto.estoqueMinimo) return [];
     const alerta = {
@@ -165,7 +150,7 @@ export class ServicoMovimentacao {
         await this.repositorio.registrarAlertaPendente({
           produtoId: produto.id, depositoId: saldo.depositoId, mensagem: mensagemDoAlerta(alerta), erro: motivo,
         });
-      } catch { /* a fila também falhou: o aviso abaixo ainda informa o usuário */ }
+      } catch {}
       return [{ codigo: 'alerta_nao_enviado', mensagem: `Estoque abaixo do mínimo, mas o alerta não foi enviado (${motivo}). Ficou na fila de pendentes.` }];
     }
   }

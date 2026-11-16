@@ -1,13 +1,9 @@
-// Implementação do repositório em PostgreSQL.
-// Toda consulta filtra pelos depósitos recebidos: o isolamento é aplicado no SQL.
-
 import pg from 'pg';
 import type {
   Deposito, Movimentacao, NovaMovimentacao, Produto, Saldo, SaldoDetalhado, Usuario,
 } from '../dominio/tipos.ts';
 import type { AlertaPendente, RepositorioEstoque, UnidadeDeTrabalho } from './repositorio-estoque.ts';
 
-// NUMERIC chega do driver como texto; converte para number.
 pg.types.setTypeParser(1700, (v) => Number(v));
 
 type Executor = Pick<pg.PoolClient, 'query'>;

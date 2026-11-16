@@ -1,7 +1,3 @@
-# Sobe o banco PostgreSQL (com schema e dados de exemplo) e a API.
-#   docker compose up --build
-# A API fica em http://localhost:3000 e o banco em localhost:5432.
-
 services:
   banco:
     image: postgres:16
